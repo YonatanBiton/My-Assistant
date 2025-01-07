@@ -1,4 +1,7 @@
 # Voice Assistant with NLP and Command Control
+## Version 0.1.0
+
+
 This project is a voice-controlled assistant built with Python that integrates multiple functionalities, including speech recognition, natural language processing (NLP), weather information, Wikipedia queries, application launching, and more. The assistant uses various NLP models such as spaCy, Whisper, and RoBERTa to process and understand user commands.
 
 ## Features
