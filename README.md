@@ -25,8 +25,8 @@ Download spaCy and the English model:
 - python -m spacy download en_core_web_lg
 
 Set up the necessary environment variables (e.g., your OpenWeatherMap API key):
-OpenWeatherMap API key: [Sign up here](https://home.openweathermap.org/users/sign_in)
-Add your key in the appropriate variable in the code.
+- OpenWeatherMap API key: [Sign up here](https://home.openweathermap.org/users/sign_in)
+- Add your key in the appropriate variable in the code.
 
 ### Run the assistant:
 - python assistant.py
