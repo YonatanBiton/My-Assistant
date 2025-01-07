@@ -20,7 +20,8 @@ import re
 nlp = spacy.load("en_core_web_lg")
 tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
 model = AutoModelForTokenClassification.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
-
+# Load the RoBERTa model fine-tuned for NER
+nlp = pipeline("ner", model=model, tokenizer=tokenizer)
 
 # Initialize recognizer and text-to-speech engine
 recognizer = sr.Recognizer()
@@ -606,8 +607,7 @@ def extract_entities_with_roberta(text):
     """
     # Normalize the text to title case for better entity recognition
     text = text.title()
-    # Load the RoBERTa model fine-tuned for NER
-    nlp = pipeline("ner", model=model, tokenizer=tokenizer)
+
     entities = nlp(text)
     for entity in entities:
         print(f"Entity: {entity['word']}, Label: {entity['entity']}")
