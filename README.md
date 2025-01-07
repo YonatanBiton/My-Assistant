@@ -50,4 +50,9 @@ The assistant will respond via text-to-speech with the appropriate answer or act
 ## Contributing
 Contributions are welcome! Feel free to fork this repository, open issues, and submit pull requests.
 
+##Future Features:
+- GUI for user interactive system
+- Hybird text input and voice input
+- Automate the discovery of user application paths
+
 
