@@ -21,6 +21,8 @@ Requirements:
 - Optional: GPU for faster processing (if using Whisper with GPU)
 
 ## Installation
+**Must use python version 3.8-3.12**
+
 git clone https://github.com/your-username/My-Assistant.git
 cd My-Assistant
 
