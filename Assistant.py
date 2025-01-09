@@ -14,13 +14,17 @@ from transformers import AutoTokenizer, AutoModelForTokenClassification
 import numpy as np
 import pyaudio
 import re
-
+import sqlite3
+import data_base_init
 # Initialize spaCy NLP model
 nlp = spacy.load("en_core_web_lg")
 tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
 model = AutoModelForTokenClassification.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
 # Load the RoBERTa model fine-tuned for NER
 nlp = pipeline("ner", model=model, tokenizer=tokenizer)
+
+
+
 
 # Initialize recognizer and text-to-speech engine
 engine = pyttsx3.init()
@@ -30,14 +34,6 @@ weather_api_key = "d39f1c02345864641983ba1274530e37"
 CACHE_FILE = "user_apps.json"
 
 
-
-# List of system directories to exclude
-EXCLUDED_DIRECTORIES = [
-    r"C:/Windows",
-    r"C:/Windows\System32",
-    r"C:/Windows\SysWOW64",
-    r"C:\$Recycle.Bin",
-]
 # Dictionary of general question starters
 question_starters = {
     "who": ["who is", "who was", "who are", "who were"],
@@ -549,7 +545,21 @@ def extract_word_after_command(command, target_word):
         return None
 
 
-def execute_command(command, installed_apps):
+def insert_new_app(app_name, app_path, cursor, db_conn):
+    try:
+        cursor.execute('''
+            INSERT INTO whitelist_apps (app_name, app_path)
+            VALUES (?, ?)
+            ''', (app_name, app_path))
+        print("added new app to applist")
+    except sqlite3.Error as e:
+        print(f"Error inserting whitelist apps: {e}")
+
+    db_conn.commit()
+
+
+
+def execute_command(command, installed_apps, cursor, db_conn):
     """
     This function manages and executes different commands received by the assistant. It processes the command, extracts relevant 
     information (e.g., entities, app names), and performs actions.
@@ -646,6 +656,7 @@ def execute_command(command, installed_apps):
             if overwrite != "yes":
                 print("Operation canceled.")
         installed_apps[app_name] = app_path
+        insert_new_app(app_name, app_path, cursor, db_conn)
         save_cached_paths(installed_apps)
         speak(f"Added {app_name} to the whitelist.")
     
@@ -701,6 +712,16 @@ def assistant_main():
     """
     global whisper_model, whisper_processor, device
     
+
+    # Initialize DataBase
+    try:
+        data_base_init.main()
+        db_conn = data_base_init.create_connection("assistant_data.db")
+        cursor = db_conn.cursor()
+    except Exception as e:
+        print(f"Error initializing data base: {e}")
+
+
     # Initialize Whisper
     try:
         whisper_model, whisper_processor, device = initialize_whisper()
@@ -734,7 +755,7 @@ def assistant_main():
                 if "exit" in command or "bye" in command:
                     speak("Goodbye!")
                     break
-                execute_command(command, installed_apps)
+                execute_command(command, installed_apps, cursor, db_conn)
     except KeyboardInterrupt:
         print("\nStopping assistant...")
     finally:
