@@ -266,7 +266,7 @@ def save_cached_paths(app_paths):
         json.dump(app_paths, file)
 
 
-def find_closest_app(user_input, app_dict):
+def find_closest_app(user_input, app_dict, cursor):
     """
     Finds the closest matching application name from the provided dictionary using fuzzy string matching.
     Args:
@@ -282,8 +282,10 @@ def find_closest_app(user_input, app_dict):
     """
     try:
         # Ensure user_input is a string and perform fuzzy matching
-        best_match = process.extractOne(user_input.lower(), app_dict.keys())
-        
+        #best_match = process.extractOne(user_input.lower(), app_dict.keys())
+        cursor.execute("SELECT app_name FROM apps")
+        app_names = [row[0] for row in cursor.fetchall()]
+        best_match = process.extractOne(user_input.lower(), [app.lower() for app in app_names])
         if best_match and best_match[1] > 90:  # Adjust threshold
             return app_dict[best_match[0]]
         
@@ -441,7 +443,7 @@ def extract_subject_from_question(question):
         return None
 
 
-def website_opener(command):
+def website_opener(command, cursor):
     """
     This function iterates through a dictionary of common websites and returns the URL of the site
     that matches the name found in the user's command.
@@ -451,10 +453,13 @@ def website_opener(command):
         str: The URL of the website that matches the site name in the command.
              If no match is found, the function implicitly returns None.
     """
-    for category, sites in common_websites.items():
-        for site_name, site_url in sites.items():
-            if site_name in command:
-                return site_url
+        # Query to get all site names and URLs from the database
+    cursor.execute("SELECT website_name, url FROM common_websites")
+    websites = cursor.fetchall()
+    for site_name, site_url in websites:
+        if site_name.lower() in command.lower():  # Case insensitive matching
+            return site_url
+    return None
     
 
 def extract_app_name(command):
@@ -607,16 +612,12 @@ def execute_command(command, installed_apps, cursor, db_conn):
         if app_name is not None:
             app_name = extract_word_after_command(command,'open')
         #trying to find the app name in side the installed apps dic
-        app_path = find_closest_app(app_name, installed_apps)
+        app_path = find_closest_app(app_name, installed_apps, cursor)
         whitelist_app_path = find_app_in_whitelist(app_name)
-        website_url = website_opener(command)
+        website_url = website_opener(command, cursor)
         print("app name: "+app_name)
-        #handling windows app openning
-        if whitelist_app_path:
-            open_app(whitelist_app_path)
-            speak(f"Opening {app_name}.")
         #handling common website openning
-        elif website_url:
+        if website_url:
             webbrowser.open(website_url)
             speak(f"Opening {app_name}.")
         #handling computer app openning
@@ -715,7 +716,8 @@ def assistant_main():
 
     # Initialize DataBase
     try:
-        data_base_init.main()
+        if not os.path.isfile("assistant_data.db"):
+            data_base_init.main()
         db_conn = data_base_init.create_connection("assistant_data.db")
         cursor = db_conn.cursor()
     except Exception as e:
@@ -754,12 +756,11 @@ def assistant_main():
             if command:
                 if "exit" in command or "bye" in command:
                     speak("Goodbye!")
+                    db_conn.close()
                     break
                 execute_command(command, installed_apps, cursor, db_conn)
     except KeyboardInterrupt:
         print("\nStopping assistant...")
-    finally:
-        speak("Goodbye!")
 
 if __name__ == "__main__":
     assistant_main()
