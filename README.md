@@ -1,63 +1,114 @@
-# Voice Assistant with NLP and Command Control
-## Version 0.1.0
-
-
-This project is a voice-controlled assistant built with Python that integrates multiple functionalities, including speech recognition, natural language processing (NLP), weather information, Wikipedia queries, application launching, and more. The assistant uses various NLP models such as spaCy, Whisper, and RoBERTa to process and understand user commands.
+# Voice-Controlled Personal Assistant
+## Version 0.1.0 
+This project is a Python-based voice-controlled personal assistant. It utilizes advanced speech recognition, natural language processing, and text-to-speech capabilities to execute various commands such as fetching weather information, searching Wikipedia, opening or closing applications, and more.
 
 ## Features
-- Speech Recognition: Convert spoken commands into text using Whisper and Google Speech-to-Text API.
-- Natural Language Processing (NLP): Understand user queries using spaCy and RoBERTa models for entity extraction and intent recognition.
-- Weather Information: Get weather updates by querying the OpenWeatherMap API.
-- Wikipedia Queries: Retrieve summaries from Wikipedia based on user questions.
-- Application Control: Open, close, or launch applications installed on your system.
-- Website Navigation: Open websites based on user commands (e.g., Google, YouTube).
-- Text-to-Speech (TTS): Convert assistant's responses into speech using pyttsx3.
 
-## Setup
-Requirements:
-- Python 3.x
-- spacy, torch, pyttsx3, pyaudio, requests, wikipedia-api, whisper, transformers, fuzzywuzzy
-- Internet connection for API calls (weather, Wikipedia, etc.)
-- Optional: GPU for faster processing (if using Whisper with GPU)
+- **Speech Recognition**: Uses OpenAI's Whisper model to transcribe voice commands.
+- **Natural Language Processing**: Integrates spaCy for entity extraction and command understanding.
+- **Text-to-Speech**: Provides auditory feedback using `pyttsx3`.
+- **Weather Updates**: Fetches real-time weather information using the OpenWeatherMap API.
+- **Wikipedia Integration**: Retrieves summaries for general knowledge questions.
+- **Application Management**: Open, close, and manage apps on your system.
+- **Web Browsing**: Opens websites directly from voice commands.
+- **Extensibility**: Dynamic database integration for apps and websites.
 
 ## Installation
-**Must use python version 3.8-3.12**
 
-git clone https://github.com/your-username/My-Assistant.git
-cd My-Assistant
+### Prerequisites
 
-Download spaCy and the English model:
-- python -m spacy download en_core_web_lg
+Ensure you have the following installed:
+- Python 3.8+
+- pip
+- SQLite
 
-Set up the necessary environment variables (e.g., your OpenWeatherMap API key):
-- OpenWeatherMap API key: [Sign up here](https://home.openweathermap.org/users/sign_in)
-- Add your key in the appropriate variable in the code.
+### Libraries
 
-### Run the assistant:
-- python assistant.py
+Install required libraries using pip:
+
+```bash
+pip install spacy pyttsx3 numpy pyaudio requests wikipedia-api fuzzywuzzy torch transformers
+```
+
+### Additional Setup
+
+1. **Download and Set Up Whisper Model**:
+   ```bash
+   pip install transformers
+   ```
+
+2. **Database Initialization**:
+   The project initializes an SQLite database (`assistant_data.db`) for storing application paths and website URLs.
+
+3. **API Keys**:
+   - OpenWeatherMap API key: Replace `weather_api_key` with your API key in the script.
+
+4. **spaCy Model**:
+   Download the spaCy language model:
+   ```bash
+   python -m spacy download en_core_web_lg
+   ```
 
 ## Usage
-Once the assistant is running, you can interact with it by speaking commands. The assistant will listen to your voice and execute the following actions based on your commands:
-Weather: "What is the weather in Paris?"
-Wikipedia: "Tell me about Python programming."
-Application Control: "Open Notepad" or "Close Calculator"
-Web Navigation: "Open YouTube"
-The assistant will respond via text-to-speech with the appropriate answer or action.
 
-## Technologies Used:
-- Whisper: For speech recognition.
-- spaCy: For entity recognition and NLP tasks.
-- RoBERTa: For fine-tuned Named Entity Recognition (NER) to identify app names and other entities.
-- pyttsx3: For text-to-speech functionality.
-- requests: To fetch weather data from the OpenWeatherMap API.
-- Wikipedia-API: To fetch data from Wikipedia.
+1. **Run the Assistant**:
+   ```bash
+   python assistant.py
+   ```
+
+2. **Commands**:
+   - Weather: "What is the weather in [city]?"
+   - Wikipedia: "Tell me about [topic]."
+   - Open Apps: "Open [application name]."
+   - Close Apps: "Close [application name]."
+   - Add New App: "Add [application name]" (Follow prompts to add new apps).
+   - Web Browsing: "Open [website name]."
+
+3. **Exit the Assistant**:
+   Say "exit" or "bye" to close the assistant.
+
+## How It Works
+
+### Speech Recognition
+The assistant uses OpenAI's Whisper model to transcribe voice inputs into text. The transcription is processed to extract relevant entities and commands.
+
+### NLP with spaCy
+SpaCy's Entity Ruler dynamically adds patterns for recognizing app names, locations, and more. The assistant identifies intents like opening apps, fetching weather, or searching the web.
+
+### Database Integration
+SQLite is used to manage whitelisted apps and commonly used websites. The database is initialized automatically if not found.
+
+### Dynamic Execution
+The assistant uses subprocesses for opening/closing applications and web browsers for opening websites. It also handles errors gracefully, ensuring a seamless user experience.
+
+## Project Structure
+
+```
+.
+├── assistant.py          # Main script
+├── data_base_init.py     # Database initialization and schema creation
+├── requirements.txt      # List of required Python libraries
+└── README.md             # Project documentation
+```
+
+## Future Improvements
+
+- Automated file path finder
+- GUI
+- Hybrid text and voice commands for the assistant
+- Expand integration with third-party APIs (e.g., Google Calendar, Spotify).
 
 ## Contributing
-Contributions are welcome! Feel free to fork this repository, open issues, and submit pull requests.
 
-## Future Features:
-- GUI for user interactive system
-- Hybird text input and voice input
-- Automate the discovery of user application paths
+Contributions are welcome! Feel free to submit issues or pull requests for improvements.
 
+## License
 
+This project is licensed under the MIT License. See `LICENSE` for details.
+
+## Acknowledgments
+
+- [OpenAI Whisper](https://github.com/openai/whisper)
+- [spaCy](https://spacy.io/)
+- [OpenWeatherMap API](https://openweathermap.org/api)
+- [Wikipedia API](https://pypi.org/project/wikipedia-api/)
