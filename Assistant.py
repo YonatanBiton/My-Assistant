@@ -6,6 +6,7 @@ import pyttsx3
 import requests
 from rapidfuzz import process
 import spacy
+from spacy.pipeline import EntityRuler
 import wikipediaapi
 from datetime import datetime
 import torch
@@ -18,13 +19,7 @@ import sqlite3
 import data_base_init
 # Initialize spaCy NLP model
 spacy_nlp = spacy.load("en_core_web_lg")
-tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
-model = AutoModelForTokenClassification.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
-# Load the RoBERTa model fine-tuned for NER
-nlp = pipeline("ner", model=model, tokenizer=tokenizer)
-
-
-
+ruler = spacy_nlp.add_pipe("entity_ruler", before="ner")
 
 # Initialize recognizer and text-to-speech engine
 engine = pyttsx3.init()
@@ -34,79 +29,7 @@ weather_api_key = "d39f1c02345864641983ba1274530e37"
 CACHE_FILE = "user_apps.json"
 
 
-# Dictionary of general question starters
-question_starters = {
-    "who": ["who is", "who was", "who are", "who were"],
-    "what": ["what is", "what was", "what are", "what were"],
-    "where": ["where is", "where was", "where are", "where were"],
-    "when": ["when is", "when was", "when are", "when were"],
-    "why": ["why is", "why was", "why are", "why were"],
-    "how": ["how is", "how was", "how are", "how were"]
-}
-# list of apps found in dir that has a lot of .exe files that arent important
-WHITELIST_APPS = {
-    "notepad": r"C:\Windows\System32\notepad.exe",
-    "calculator": r"C:\Windows\System32\calc.exe",
-    "snippingtool": r"C:\Windows\System32\SnippingTool.exe",
-    "paint": r"C:\Windows\System32\mspaint.exe",
-}
-#comon website url's
-common_websites = {
-    "search_engines": {
-        "google": "https://www.google.com",
-        "bing": "https://www.bing.com",
-        "duckduckgo": "https://www.duckduckgo.com"
-    },
-    "social_media": {
-        "facebook": "https://www.facebook.com",
-        "twitter": "https://www.twitter.com",
-        "instagram": "https://www.instagram.com",
-        "linkedin": "https://www.linkedin.com",
-        "reddit": "https://www.reddit.com"
-    },
-    "entertainment": {
-        "youtube": "https://www.youtube.com",
-        "netflix": "https://www.netflix.com",
-        "hulu": "https://www.hulu.com",
-        "spotify": "https://www.spotify.com",
-        "twitch": "https://www.twitch.tv"
-    },
-    "news": {
-        "bbc": "https://www.bbc.com",
-        "cnn": "https://www.cnn.com",
-        "nytimes": "https://www.nytimes.com",
-        "the_guardian": "https://www.theguardian.com",
-        "reuters": "https://www.reuters.com"
-    },
-    "shopping": {
-        "amazon": "https://www.amazon.com",
-        "ebay": "https://www.ebay.com",
-        "walmart": "https://www.walmart.com",
-        "etsy": "https://www.etsy.com",
-        "aliexpress": "https://www.aliexpress.com"
-    },
-    "education": {
-        "wikipedia": "https://www.wikipedia.org",
-        "khan_academy": "https://www.khanacademy.org",
-        "coursera": "https://www.coursera.org",
-        "edx": "https://www.edx.org",
-        "udemy": "https://www.udemy.com"
-    },
-    "productivity": {
-        "google_drive": "https://drive.google.com",
-        "dropbox": "https://www.dropbox.com",
-        "notion": "https://www.notion.so",
-        "trello": "https://www.trello.com",
-        "slack": "https://www.slack.com"
-    },
-    "developer_tools": {
-        "github": "https://www.github.com",
-        "stackoverflow": "https://stackoverflow.com",
-        "gitlab": "https://www.gitlab.com",
-        "docker_hub": "https://hub.docker.com",
-        "npm": "https://www.npmjs.com"
-    }
-}
+
 SIZE_LIMIT = 100 * 1024  # 100 KB size limit for valid executables
 
 #using spacy NLP to extract the entitie from the command
@@ -431,7 +354,7 @@ def extract_subject_from_question(question):
         subject = None
         for ent in doc.ents:
             # Check for specific named entities (e.g., PRODUCT, FAC, LOC, etc.)
-            if ent.label_ in ['PRODUCT', 'FAC', 'DATE', 'LOC', 'GPE', 'PERSON', 'ORG', 'EVENT']:
+            if ent.label_ in ['PRODUCT', 'FAC', 'DATE', 'LOC', 'GPE', 'PERSON', 'ORG', 'EVENT', 'APP']:
                 subject = ent.text
                 break
 
@@ -488,89 +411,48 @@ def extract_app_name(command):
     return app_name
 
 
-def extract_entities_with_roberta(text):
-    """
-    Extract named entities from the input text using a RoBERTa model fine-tuned for Named Entity Recognition (NER).
-    Args:
-        text (str): The input text from which named entities need to be extracted.
-    Returns:
-        list: A list of dictionaries representing the detected entities.
-
-    Example:
-        text = "Elon Musk founded SpaceX in California."
-        entities = extract_entities_with_roberta(text)
-        # Output: 
-        # Entity: Elon Musk, Label: I-PER
-        # Entity: SpaceX, Label: I-ORG
-        # Entity: California, Label: I-LOC
-    """
-    # Normalize the text to title case for better entity recognition
-    text = text.title()
-
-    entities = nlp(text)
-    for entity in entities:
-        print(f"Entity: {entity['word']}, Label: {entity['entity']}")
-    
-    return entities
-
-def extract_entity_string(entities):
-    """
-    Extract a string of organization names from a list of entities.
-    Args:
-        entities (list): A list of dictionaries representing the detected entities (the entity label, e.g., 'ORG', 'PER', 'LOC').
-    Returns:
-        str: A string of organization names concatenated together, separated by spaces.
-
-    Example:
-        entities = [
-            {'word': 'Elon Musk', 'entity': 'PER'},
-            {'word': 'SpaceX', 'entity': 'ORG'},
-            {'word': 'California', 'entity': 'LOC'}
-        ]
-        org_string = extract_entity_string(entities)
-        # Output: "SpaceX"
-    """
-    org_entities = [entity['word'].replace("▁", "") for entity in entities if 'ORG' in entity['entity']]
-    return " ".join(org_entities)
 
 
-def extract_word_after_command(command, target_word):
-    """
-    Extract the word that appears immediately after the target command in the sentence.
-    Args:
-        command (str): The input sentence or command from which the word after the target command will be extracted.
-        target_word (str): The target word (e.g., 'open', 'close') that the function will search for in the command.
-    Returns:
-        str or None: The word immediately after the target word in the command, or None if no word is found.
 
-    Example:
-        command = "Please open Chrome"
-        target_word = "open"
-        result = extract_word_after_command(command, target_word)
-        # Output: "Chrome"
-    """
-    match = re.search(r'\b' + re.escape(target_word) + r'\b (\w+)', command)
-    if match:
-        return match.group(1)
-    else:
-        return None
+
+
 
 
 def insert_new_app(app_name, app_path, cursor, db_conn):
     try:
+    # Check if the app already exists
         cursor.execute('''
+        SELECT COUNT(*) FROM whitelist_apps WHERE app_name = ?
+        ''', (app_name,))
+        result = cursor.fetchone()
+
+        if result[0] > 0:
+            print(f"The app '{app_name}' already exists in the whitelist.")
+            user_input = input("The app is already exists to you want to over righ it yes/no: ")
+            if user_input == 'no':
+                return 
+        else:
+            # Insert the new app if it doesn't exist
+            cursor.execute('''
             INSERT INTO whitelist_apps (app_name, app_path)
             VALUES (?, ?)
             ''', (app_name, app_path))
-        print("added new app to applist")
+            print(f"Added new app '{app_name}' to the whitelist.")
+            db_conn.commit()  # Commit only if new app is added
+
     except sqlite3.Error as e:
-        print(f"Error inserting whitelist apps: {e}")
+        print(f"Error checking or inserting whitelist apps: {e}")
 
-    db_conn.commit()
+def add_ruler_to_nlp(cursor):
+    # Fetch app names
+    cursor.execute("SELECT app_name FROM whitelist_apps")
+    apps = [row[0] for row in cursor.fetchall()]
 
+    # Define patterns dynamically
+    patterns = [{"label": "APP", "pattern": app} for app in apps]
+    ruler.add_patterns(patterns)
 
-
-def execute_command(command, installed_apps, cursor, db_conn):
+def execute_command(command, cursor, db_conn):
     """
     This function manages and executes different commands received by the assistant. It processes the command, extracts relevant 
     information (e.g., entities, app names), and performs actions.
@@ -583,7 +465,7 @@ def execute_command(command, installed_apps, cursor, db_conn):
     """
     flag = 0
     entities = extract_entities(command)  # Extract entities using spaCy
-    print(f"ent {entities}")
+    print(entities)
     if 'weather' in command:  # If the command contains 'weather', it fetches the weather
         city = entities.get("GPE")  # Get city (Geopolitical Entity) from entities
         if city:
@@ -612,12 +494,8 @@ def execute_command(command, installed_apps, cursor, db_conn):
     #handling app opnening
     elif 'open' in command:  
         #extraction of the app name from the command
-        app_name = extract_entities_with_roberta(command)
-        app_name = extract_entity_string(app_name)
-        if app_name is not None:
-            app_name = extract_word_after_command(command,'open')
-        #trying to find the app name in side the installed apps dic
-        app_path = find_closest_app(app_name, installed_apps, cursor)
+        app_name = entities.get("APP")
+        app_path = find_closest_app(app_name, cursor)
         website_url = website_opener(command, cursor)
         print(f"app name: {app_name}")
         #handling common website openning
@@ -633,12 +511,9 @@ def execute_command(command, installed_apps, cursor, db_conn):
 
     #handling app closing
     elif 'close' in command:
-        app_name = extract_entities_with_roberta(command)
-        app_name = extract_entity_string(app_name)
-        if app_name is not None:
-            app_name = extract_word_after_command(command,'close')
+        app_name = entities.get("APP")
         print(app_name)
-        app_path = find_closest_app(app_name, installed_apps,cursor)
+        app_path = find_closest_app(app_name,cursor)
         if(app_path):
             close_app(app_name)
             speak(f"Closing app {app_name}.")
@@ -654,14 +529,8 @@ def execute_command(command, installed_apps, cursor, db_conn):
         if not app_name or not app_path:
             print("Invalid input. Both name and path are required.")
             return
-        # Check if app name already exists
-        if app_name in installed_apps:
-            overwrite = input(f"{app_name} already exists. Overwrite? (yes/no): ").strip().lower()
-            if overwrite != "yes":
-                print("Operation canceled.")
-        installed_apps[app_name] = app_path
+
         insert_new_app(app_name, app_path, cursor, db_conn)
-        save_cached_paths(installed_apps)
         speak(f"Added {app_name} to the whitelist.")
     
     #if the assistant didnt understand the command flag = 1 to ask the user if he wants to look up the command on google
@@ -734,13 +603,8 @@ def assistant_main():
         print(f"Error initializing Whisper: {e}")
         return
 
-    # Load cached apps
-    cached_apps = load_cached_paths()
-
-    if not cached_apps:
-        speak("could not load app file")
-    else:
-        installed_apps = cached_apps
+    #adding ruler to nlp
+    add_ruler_to_nlp(cursor)
 
     # Main loop to listen for commands
     start_time = get_time_of_day()
@@ -752,7 +616,7 @@ def assistant_main():
         speak("good evening ")
     elif start_time == "Night":
         speak("good night ")
-    print(extract_entities_with_roberta("can you open fl64  ?"))
+    
     try:
         while True:
             command = listen()
@@ -762,7 +626,7 @@ def assistant_main():
                     speak("Goodbye!")
                     db_conn.close()
                     break
-                execute_command(command, installed_apps, cursor, db_conn)
+                execute_command(command,  cursor, db_conn)
     except KeyboardInterrupt:
         print("\nStopping assistant...")
 
