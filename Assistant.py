@@ -23,10 +23,8 @@ ruler = spacy_nlp.add_pipe("entity_ruler", before="ner")
 
 # Initialize recognizer and text-to-speech engine
 engine = pyttsx3.init()
-
 # Set your API key (replace with your actual OpenAI API key)
 weather_api_key = "d39f1c02345864641983ba1274530e37"
-CACHE_FILE = "user_apps.json"
 
 
 
@@ -162,34 +160,6 @@ def speak(text):
     engine.say(text)
     engine.runAndWait()
 
-
-def load_cached_paths():
-    """
-    Loads cached paths from a file if it exists, or creates the file if it doesn't.
-    Returns:
-        dict: The cached paths as a dictionary. If the file didn't exist, returns an empty dictionary.
-    """
-    if os.path.exists(CACHE_FILE):
-        with open(CACHE_FILE, "r") as file:
-            return json.load(file)
-    else:
-        # Create the cache file with an empty dictionary
-        with open(CACHE_FILE, "w") as file:
-            json.dump({}, file)
-        speak("Cache file not found. A new cache file has been created.")
-    return {}
-
-
-def save_cached_paths(app_paths):
-    """
-    Saves the given application paths to a cache file in JSON format.
-    Args:
-        app_paths (dict): A dictionary containing the application paths to be saved. 
-    """
-    with open(CACHE_FILE, "w") as file:
-        json.dump(app_paths, file)
-
-
 def find_closest_app(user_input, app_dict, cursor):
     """
     Finds the closest matching application name from the provided dictionary using fuzzy string matching.
@@ -236,20 +206,6 @@ def open_app(app_path):
         print(f"Failed to open {app_path}: {e}")
     except Exception as e:
         print(f"Error opening app: {e}")
-
-def find_app_in_whitelist(app_name):
-    """
-    Searches for an app in the whitelist using fuzzy matching on the provided `app_name`.
-    Args:
-        app_name (str): The name of the app to search for in the whitelist. This string will be compared against the keys in the whitelist.
-    Returns:
-        str or None: The path to the app in the whitelist if a match is found, otherwise `None`.
-    """
-    # Use fuzzy matching to handle variations in user input
-    best_match = process.extractOne(app_name.lower(), WHITELIST_APPS.keys())
-    if best_match and best_match[1] > 90:  # Adjust threshold as needed
-        return WHITELIST_APPS[best_match[0]]
-    return None
 
 
 def close_app(app_name):
@@ -410,14 +366,6 @@ def extract_app_name(command):
     
     return app_name
 
-
-
-
-
-
-
-
-
 def insert_new_app(app_name, app_path, cursor, db_conn):
     try:
     # Check if the app already exists
@@ -426,9 +374,11 @@ def insert_new_app(app_name, app_path, cursor, db_conn):
         ''', (app_name,))
         result = cursor.fetchone()
         if result[0] > 0:
-            print(f"The app '{app_name}' already exists in the whitelist.")
-            user_input = input("The app is already exists to you want to over righ it yes/no: ")
-            if user_input == 'no':
+            speak(f"{app_name} is already exists to you want to over right it? Yes/No")
+            user_confirmation = listen()
+            print(user_confirmation)
+            if user_confirmation and ("no" in user_confirmation or "No" in user_confirmation or "nope" in user_confirmation):
+                speak(f"{app_name} wasn't added to your app list")
                 return 
         else:
             # Insert the new app if it doesn't exist
@@ -436,7 +386,7 @@ def insert_new_app(app_name, app_path, cursor, db_conn):
             INSERT INTO whitelist_apps (app_name, app_path)
             VALUES (?, ?)
             ''', (app_name, app_path))
-            print(f"Added new app '{app_name}' to the whitelist.")
+            speak(f"Added {app_name} to your app list.")
             db_conn.commit()  # Commit only if new app is added
 
     except sqlite3.Error as e:
@@ -530,7 +480,6 @@ def execute_command(command, cursor, db_conn):
             return
 
         insert_new_app(app_name, app_path, cursor, db_conn)
-        speak(f"Added {app_name} to the whitelist.")
     
     #if the assistant didnt understand the command flag = 1 to ask the user if he wants to look up the command on google
     else:
