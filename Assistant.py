@@ -17,7 +17,7 @@ import re
 import sqlite3
 import data_base_init
 # Initialize spaCy NLP model
-nlp = spacy.load("en_core_web_lg")
+spacy_nlp = spacy.load("en_core_web_lg")
 tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
 model = AutoModelForTokenClassification.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
 # Load the RoBERTa model fine-tuned for NER
@@ -126,7 +126,8 @@ def extract_entities(command):
         # Output: {'CITY': 'Paris'}
     """
     try:
-        doc = nlp(command)
+        command = command[1:]
+        doc = spacy_nlp(command)
         entities = {ent.label_: ent.text for ent in doc.ents}
         return entities
     except Exception as e:
@@ -206,7 +207,7 @@ def listen():
         predicted_ids = whisper_model.generate(input_features)
         transcription = whisper_processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
         if transcription.strip():
-            print(f"You said: {transcription}")
+            print(f"You said:{transcription}")
             return transcription.lower()
         return None
     except Exception as e:
@@ -424,7 +425,8 @@ def extract_subject_from_question(question):
     """
     try:
         # Process the question with spaCy
-        doc = nlp(question.upper())
+        question = question[1:]
+        doc = spacy_nlp(question.upper())
         print("Entities:", doc.ents)
         subject = None
         for ent in doc.ents:
@@ -592,9 +594,10 @@ def execute_command(command, installed_apps, cursor, db_conn):
 
     #wikipidia requests
     elif check_general_question_in_command(command, cursor):
+        print("in wiki")
         print(command)
         subject = extract_subject_from_question(command)
-        print(subject)
+        print(f"subject: {subject}")
         response = get_wikipedia_summary(subject)
         if "couldn't find" in response.lower():  # If Wikipedia doesn't return results
             speak(f"I couldn't find an answer on Wikipedia. Do you want me to search for it on Google?")
@@ -756,6 +759,7 @@ def assistant_main():
     try:
         while True:
             command = listen()
+            
             if command:
                 if "exit" in command or "bye" in command:
                     speak("Goodbye!")
