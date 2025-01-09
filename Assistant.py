@@ -142,10 +142,6 @@ def extract_entities(command):
 def initialize_whisper(model_name="openai/whisper-small.en"):
     """
     Initialize the Whisper model for speech recognition.
-    This function loads the Whisper model and processor, sets the device 
-    (CUDA for GPU or CPU based on availability), and returns the model, 
-    processor, and device for further use in speech-to-text tasks.
-
     Args:
         model_name (str): The name of the Whisper model to load. 
                           Default is "openai/whisper-small.en".
@@ -154,9 +150,6 @@ def initialize_whisper(model_name="openai/whisper-small.en"):
             - model: The loaded Whisper model.
             - processor: The processor for preprocessing audio input.
             - device: The device ("cuda" or "cpu") used for model inference.
-
-    Example:
-        model, processor, device = initialize_whisper()
     """
     print("Loading Whisper model...")
     processor = WhisperProcessor.from_pretrained(model_name)
@@ -170,15 +163,10 @@ def initialize_whisper(model_name="openai/whisper-small.en"):
 def record_audio(duration=5, sample_rate=16000, threshold=0.01):
     """
     Record audio from the microphone and detect speech using the is_speaking function.
-    This function records audio for a specified duration and processes the audio data in chunks.
-    It checks if speech is detected in each chunk using the `is_speaking` function and only stores
-    the audio frames containing speech. If no speech is detected during the recording, it returns None.
-
     Args:
-        duration (int): The duration (in seconds) to record audio. Default is 5 seconds.
+        duration (int): The duration (in seconds) to record audio.
         sample_rate (int): The sample rate for audio recording (default is 16000 Hz).
-        threshold (float): The threshold value used to detect speech. Default is 0.01.
-
+        threshold (float): The threshold value used to detect speech. 
     Returns:
         numpy.ndarray or None: 
             - A numpy array containing the concatenated speech frames if speech is detected.
@@ -210,22 +198,10 @@ def record_audio(duration=5, sample_rate=16000, threshold=0.01):
 def listen():
     """
     Listens to the user's speech, processes it using the Whisper model, and returns the transcribed text.
-
-    This function records audio, processes the audio input using the Whisper model, and decodes
-    the predicted transcription. If the transcription is non-empty, it returns the lowercased version 
-    of the transcribed text. If an error occurs during the process, it handles the exception and returns `None`.
-
     Returns:
         str or None:
             - A lowercase string of the transcribed speech if speech is successfully detected.
             - `None` if an error occurs or no speech is detected.
-
-    Example:
-        user_input = listen()
-        if user_input:
-            print(f"Recognized input: {user_input}")
-        else:
-            print("No speech detected or error occurred.")
     """
     global whisper_model, whisper_processor, device
     try:
@@ -258,9 +234,6 @@ def is_speaking(audio_data, threshold=0.01):
 def speak(text):
     """
     Speaks the given text using the text-to-speech engine.
-    This function converts the provided text into speech using the `pyttsx3` engine, and plays the speech
-    aloud.
-
     Args:
         text (str): The text to be spoken.
     Example:
@@ -273,10 +246,6 @@ def speak(text):
 def load_cached_paths():
     """
     Loads cached paths from a file if it exists, or creates the file if it doesn't.
-    This function checks whether a cache file exists. If the file is found, it opens the file,
-    reads its contents, and loads it as a JSON object. If the file doesn't exist, it creates
-    the file with an empty dictionary and alerts the user through speech.
-
     Returns:
         dict: The cached paths as a dictionary. If the file didn't exist, returns an empty dictionary.
     """
@@ -294,16 +263,8 @@ def load_cached_paths():
 def save_cached_paths(app_paths):
     """
     Saves the given application paths to a cache file in JSON format.
-    This function writes the provided dictionary of application paths into a JSON file. The file
-    is overwritten if it already exists. It is useful for persisting app paths that can be reused
-    later, such as for fast access or caching.
-
     Args:
         app_paths (dict): A dictionary containing the application paths to be saved. 
-
-    Example:
-        app_paths = {"app1": "/path/to/app1", "app2": "/path/to/app2"}
-        save_cached_paths(app_paths)
     """
     with open(CACHE_FILE, "w") as file:
         json.dump(app_paths, file)
@@ -312,17 +273,11 @@ def save_cached_paths(app_paths):
 def find_closest_app(user_input, app_dict):
     """
     Finds the closest matching application name from the provided dictionary using fuzzy string matching.
-    This function compares the user's input to the keys in the provided application dictionary (`app_dict`)
-    and returns the corresponding value (e.g., the application path) for the closest match. It uses the `fuzzywuzzy`
-    library for string matching and returns the value only if the similarity score is above a specified threshold.
-
     Args:
         user_input (str): The input string from the user, which will be matched against the application names.
         app_dict (dict): A dictionary where keys are application names (strings) and values are application paths or other related information.
-
     Returns:
         str or None: The value associated with the closest matching key in `app_dict`, or `None` if no suitable match is found.
-
     Example:
         user_input = "googl"
         app_dict = {"google": "/path/to/google", "gmail": "/path/to/gmail"}
@@ -344,13 +299,8 @@ def find_closest_app(user_input, app_dict):
 def open_app(app_path):
     """
     Tries to open an application located at the specified `app_path` and handles any errors that may occur.
-    This function attempts to execute an application using the `subprocess.Popen` method. If successful, it prints a confirmation 
-    message and returns the `Popen` result. If there is an error (e.g., the application path is invalid or the app fails to open),
-    it catches the exception and prints an error message.
-
     Args:
         app_path (str): The file path to the application to be opened. This should be a valid path to an executable file.
-
     Returns:
         subprocess.Popen or None: The `Popen` result if the application is opened successfully, otherwise `None`.
     """
@@ -368,13 +318,8 @@ def open_app(app_path):
 def find_app_in_whitelist(app_name):
     """
     Searches for an app in the whitelist using fuzzy matching on the provided `app_name`.
-    This function uses fuzzy string matching to account for variations or misspellings in user input.
-    It compares the provided `app_name` against a predefined whitelist (`WHITELIST_APPS`) and returns the closest matching app from the whitelist
-    if a sufficiently close match is found (based on a threshold).
-
     Args:
         app_name (str): The name of the app to search for in the whitelist. This string will be compared against the keys in the whitelist.
-
     Returns:
         str or None: The path to the app in the whitelist if a match is found, otherwise `None`.
     """
@@ -388,13 +333,8 @@ def find_app_in_whitelist(app_name):
 def close_app(app_name):
     """
     Attempts to close an application by killing its process using the provided `app_name`.
-    This function uses the `taskkill` command to forcefully close an application by name. It expects the 
-    `app_name` to be the name of the executable (without the `.exe` extension). The function will attempt
-    to kill the process and handle errors gracefully if the process is not found or if there is any other issue.
-
     Args:
         app_name (str): The name of the application to close. This should be the name of the executable (without the `.exe` extension).
-
     """
     try:
         subprocess.run(f"taskkill /f /im {app_name}.exe", shell=True, check=True)
@@ -407,16 +347,11 @@ def close_app(app_name):
 def get_weather(city):
     """
     Fetches and returns the current weather information for a given city using the OpenWeatherMap API.
-    This function constructs a URL to access the OpenWeatherMap API, sends a GET request, and processes
-    the JSON response to extract relevant weather details such as temperature and description.
-
     Args:
         city (str): The name of the city for which to fetch the weather information.
 
     Returns:
-        str: A string containing the current weather information, including temperature (in Celsius) 
-             and a brief weather description (e.g., "clear sky", "light rain").
-             
+        str: A string containing the current weather information (e.g., "clear sky", "light rain").
              If the weather information cannot be fetched, it returns a fallback error message.
     """
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={weather_api_key}"
@@ -434,22 +369,12 @@ def get_weather(city):
 def get_wikipedia_summary(query):
     """
     Retrieves a brief summary from Wikipedia for a given query.
-
-    This function uses the `wikipediaapi` library to search for a Wikipedia page related to the
-    provided query. If a page is found, it extracts the first two sentences from the page summary
-    and returns them. If the page does not exist or an error occurs, an appropriate message is returned.
-
     Args:
         query (str): The topic or keyword for which to retrieve the Wikipedia summary.
 
     Returns:
         str: A short summary of the Wikipedia page, consisting of the first two sentences, or an error message 
              if the page doesn't exist or an error occurs.
-
-    Example:
-        query = "Python (programming language)"
-        summary = get_wikipedia_summary(query)
-        # Returns: "Python is an interpreted, high-level and general-purpose programming language. Its design philosophy emphasizes code readability with its use of significant indentation."
     """
     user_agent = "MyAlexaBot/1.0 (yuyu82114@gmail.com)"
     wiki = wikipediaapi.Wikipedia(user_agent, 'en')
@@ -471,22 +396,12 @@ def get_wikipedia_summary(query):
 def check_general_question_in_command(command):
     """
     Checks if the given command contains a general question and extracts the query.
-
-    This function iterates over a predefined set of question starters (stored in a dictionary),
-    and checks if any of these starters appear at the beginning of the command. If a match is found,
-    it removes the question starter phrase and returns the remaining part of the command as the query.
-
     Args:
         command (str): The command or input string that may contain a general question.
 
     Returns:
         str: The extracted query from the command if a matching question phrase is found,
              or None if no match is found.
-
-    Example:
-        command = "What is the weather in Paris?"
-        query = check_general_question_in_command(command)
-        # Returns: "the weather in Paris?"
     """
     for key, phrases in question_starters.items():
         for phrase in phrases:
@@ -499,22 +414,11 @@ def check_general_question_in_command(command):
 def extract_subject_from_question(question):
     """
     Extracts the subject of a question using spaCy's named entity recognition and noun phrase extraction.
-    This function processes a given question using spaCy to identify the subject, which is typically a
-    named entity (such as a person, location, organization, etc.) or a noun phrase. It first looks for 
-    named entities in the question (e.g., person names, locations, dates, etc.) and returns the first 
-    recognized entity as the subject. If no named entities are found, it falls back to extracting the 
-    first noun phrase in the question as the subject.
-
     Args:
         question (str): The question string from which to extract the subject.
-
     Returns:
         str: The extracted subject, which could be a named entity or the first noun phrase found, or 
              None if no suitable subject is identified.
-    Example:
-        question = "Who is the president of the United States?"
-        subject = extract_subject_from_question(question)
-        # Returns: "the president of the United States"
     """
     try:
         # Process the question with spaCy
@@ -545,7 +449,6 @@ def website_opener(command):
     """
     This function iterates through a dictionary of common websites and returns the URL of the site
     that matches the name found in the user's command.
-
     Args:
         command (str): The user's command, e.g., "Open Facebook" or "Launch Spotify".
     Returns:
@@ -558,28 +461,15 @@ def website_opener(command):
                 return site_url
     
 
-
-
 def extract_app_name(command):
     """
     Extract the app name from the user command by removing action words and 
     identifying the application name using named entity recognition.
-
-    This function processes the user's command to extract the app name by first 
-    removing action words such as "open", "close", "launch", etc., and then uses 
-    the `extract_entities()` function to identify the app name, which is assumed 
-    to be recognized as an entity of type "ORG" (organization) by spaCy.
-
     Args:
         command (str): The user's command, e.g., "Open Facebook" or "Launch Spotify".
 
     Returns:
         str: The extracted app name, either from the named entities or the remaining command.
-
-    Example:
-        command = "Open Facebook"
-        app_name = extract_app_name(command)
-        # Returns: "Facebook"
     """
     action_words = ['open', 'close', 'launch', 'start', 'run']
     for word in action_words:
@@ -591,21 +481,13 @@ def extract_app_name(command):
     return app_name
 
 
-
-
 def extract_entities_with_roberta(text):
     """
     Extract named entities from the input text using a RoBERTa model fine-tuned for Named Entity Recognition (NER).
-    This function uses a pre-trained RoBERTa model, loaded via the Hugging Face `pipeline` API, 
-    to perform Named Entity Recognition (NER) on the provided text. The text is first normalized 
-    to title case to improve entity recognition, and then the entities are identified and printed.
-
     Args:
         text (str): The input text from which named entities need to be extracted.
-
     Returns:
-        list: A list of dictionaries representing the detected entities, each containing the 
-              entity's word and corresponding label.
+        list: A list of dictionaries representing the detected entities.
 
     Example:
         text = "Elon Musk founded SpaceX in California."
@@ -627,16 +509,8 @@ def extract_entities_with_roberta(text):
 def extract_entity_string(entities):
     """
     Extract a string of organization names from a list of entities.
-
-    This function filters a list of detected entities (from Named Entity Recognition) 
-    to extract only the entities labeled as 'ORG' (organizations). It then joins 
-    the organization names into a single string.
-
     Args:
-        entities (list): A list of dictionaries representing the detected entities.
-                          Each dictionary contains 'word' (the entity text) and 
-                          'entity' (the entity label, e.g., 'ORG', 'PER', 'LOC').
-
+        entities (list): A list of dictionaries representing the detected entities (the entity label, e.g., 'ORG', 'PER', 'LOC').
     Returns:
         str: A string of organization names concatenated together, separated by spaces.
 
@@ -656,13 +530,9 @@ def extract_entity_string(entities):
 def extract_word_after_command(command, target_word):
     """
     Extract the word that appears immediately after the target command in the sentence.
-    This function uses regular expressions to find the specified target word (e.g., 'open' or 'close')
-    in the input sentence and captures the word that follows it. 
-
     Args:
         command (str): The input sentence or command from which the word after the target command will be extracted.
         target_word (str): The target word (e.g., 'open', 'close') that the function will search for in the command.
-
     Returns:
         str or None: The word immediately after the target word in the command, or None if no word is found.
 
@@ -682,13 +552,11 @@ def extract_word_after_command(command, target_word):
 def execute_command(command, installed_apps):
     """
     This function manages and executes different commands received by the assistant. It processes the command, extracts relevant 
-    information (e.g., entities, app names), and performs actions such as fetching weather information, Wikipedia summaries, 
-    opening or closing apps, and searching for information online.
+    information (e.g., entities, app names), and performs actions.
 
     Args:
         command (str): The user command that the assistant will execute.
         installed_apps (dict): A dictionary of installed apps and their paths used to find and execute apps.
-
     Returns:
         None: The function interacts with the user via voice or browser but doesn't return anything.
     """
@@ -799,23 +667,13 @@ def execute_command(command, installed_apps):
 def get_time_of_day():
     """
     Determines the current time of day based on the system's hour and returns an appropriate greeting.
-
-    The function:
-        - Gets the current hour from the system time.
-        - Returns the time of day as a string, such as "Morning", "Afternoon", "Evening", or "Night".
-
     Returns:
         str: A string representing the time of day based on the current hour.
-
     Time of Day Mapping:
         - "Morning": From 5:00 AM to 11:59 AM.
         - "Afternoon": From 12:00 PM to 5:59 PM.
         - "Evening": From 6:00 PM to 8:59 PM.
         - "Night": From 9:00 PM to 4:59 AM.
-
-    Example:
-        >>> get_time_of_day()
-        "Morning"  # If current time is between 5 AM and 11:59 AM
     """
     current_hour = datetime.now().hour
 
@@ -832,17 +690,12 @@ def get_time_of_day():
 def assistant_main():
     """
     Main loop for the assistant that handles initialization, listens for commands, and executes actions.
-    It initializes the Whisper model for speech recognition, loads the installed apps from cached paths, 
-    and handles the assistant's greetings based on the time of day. It listens for user commands and executes 
-    them until the user says "exit" or "bye".
-
     The function:
         - Initializes Whisper for speech recognition.
         - Loads the cached list of installed apps.
         - Greets the user based on the time of day.
         - Continuously listens for commands and executes them.
         - Allows the assistant to exit gracefully when "exit" or "bye" is said.
-
     Returns:
         None: The function operates continuously until the user terminates the program.
     """
