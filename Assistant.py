@@ -23,8 +23,6 @@ engine = pyttsx3.init()
 # Set your API key (replace with your actual OpenAI API key)
 weather_api_key = "d39f1c02345864641983ba1274530e37"
 
-
-
 SIZE_LIMIT = 100 * 1024  # 100 KB size limit for valid executables
 
 #using spacy NLP to extract the entitie from the command
