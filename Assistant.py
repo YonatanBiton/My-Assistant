@@ -391,7 +391,7 @@ def get_wikipedia_summary(query):
         return f"An error occurred: {e}"
     
 
-def check_general_question_in_command(command):
+def check_general_question_in_command(command, cursor):
     """
     Checks if the given command contains a general question and extracts the query.
     Args:
@@ -401,12 +401,16 @@ def check_general_question_in_command(command):
         str: The extracted query from the command if a matching question phrase is found,
              or None if no match is found.
     """
-    for key, phrases in question_starters.items():
-        for phrase in phrases:
-            if phrase in command.lower():
-                query = command[len(phrase):].strip()
-                return query
-    return None
+    # Query to get all phrases from the question_starters table
+    cursor.execute("SELECT phrase FROM question_starters")
+    phrases = cursor.fetchall()
+    for phrase_tuple in phrases:
+        phrase = phrase_tuple[0]
+        if phrase.lower() in command.lower():  # Case insensitive matching
+            return True
+
+    return None  # Return None if no phrase match is found
+
 
 
 def extract_subject_from_question(question):
@@ -587,7 +591,7 @@ def execute_command(command, installed_apps, cursor, db_conn):
             flag = 1
 
     #wikipidia requests
-    elif check_general_question_in_command(command):
+    elif check_general_question_in_command(command, cursor):
         print(command)
         subject = extract_subject_from_question(command)
         print(subject)
@@ -613,7 +617,6 @@ def execute_command(command, installed_apps, cursor, db_conn):
             app_name = extract_word_after_command(command,'open')
         #trying to find the app name in side the installed apps dic
         app_path = find_closest_app(app_name, installed_apps, cursor)
-        whitelist_app_path = find_app_in_whitelist(app_name)
         website_url = website_opener(command, cursor)
         print("app name: "+app_name)
         #handling common website openning
@@ -635,7 +638,7 @@ def execute_command(command, installed_apps, cursor, db_conn):
         if app_name is not None:
             app_name = extract_word_after_command(command,'close')
         print(app_name)
-        app_path = find_closest_app(app_name, installed_apps)
+        app_path = find_closest_app(app_name, installed_apps,cursor)
         if(app_path):
             close_app(app_name)
             speak(f"Closing app {app_name}.")
