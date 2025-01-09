@@ -439,7 +439,6 @@ def execute_command(command, cursor, db_conn):
     elif 'open' in command:  
         #extraction of the app name from the command
         app_name = entities.get("APP")
-        app_path = find_closest_app(app_name, cursor)
         website_url = website_opener(command, cursor)
         print(f"app name: {app_name}")
         #handling common website openning
@@ -448,6 +447,7 @@ def execute_command(command, cursor, db_conn):
             speak(f"Opening {app_name}.")
         #handling computer app openning
         elif app_path:
+            app_path = find_closest_app(app_name, cursor)
             open_app(app_path)
             speak(f"Opening {app_name}.")
         else:
@@ -569,7 +569,7 @@ def assistant_main():
                     speak("Goodbye!")
                     db_conn.close()
                     break
-                execute_command(command,  cursor, db_conn)
+                execute_command(command, cursor, db_conn)
     except KeyboardInterrupt:
         print("\nStopping assistant...")
 
