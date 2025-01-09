@@ -284,7 +284,7 @@ def find_closest_app(user_input, app_dict, cursor):
     try:
         # Ensure user_input is a string and perform fuzzy matching
         #best_match = process.extractOne(user_input.lower(), app_dict.keys())
-        cursor.execute("SELECT app_name FROM apps")
+        cursor.execute("SELECT app_name FROM whitelist_apps")
         app_names = [row[0] for row in cursor.fetchall()]
         best_match = process.extractOne(user_input.lower(), [app.lower() for app in app_names])
         if best_match and best_match[1] > 90:  # Adjust threshold
@@ -583,6 +583,7 @@ def execute_command(command, installed_apps, cursor, db_conn):
     """
     flag = 0
     entities = extract_entities(command)  # Extract entities using spaCy
+    print(f"ent {entities}")
     if 'weather' in command:  # If the command contains 'weather', it fetches the weather
         city = entities.get("GPE")  # Get city (Geopolitical Entity) from entities
         if city:
@@ -594,10 +595,7 @@ def execute_command(command, installed_apps, cursor, db_conn):
 
     #wikipidia requests
     elif check_general_question_in_command(command, cursor):
-        print("in wiki")
-        print(command)
         subject = extract_subject_from_question(command)
-        print(f"subject: {subject}")
         response = get_wikipedia_summary(subject)
         if "couldn't find" in response.lower():  # If Wikipedia doesn't return results
             speak(f"I couldn't find an answer on Wikipedia. Do you want me to search for it on Google?")
@@ -621,7 +619,7 @@ def execute_command(command, installed_apps, cursor, db_conn):
         #trying to find the app name in side the installed apps dic
         app_path = find_closest_app(app_name, installed_apps, cursor)
         website_url = website_opener(command, cursor)
-        print("app name: "+app_name)
+        print(f"app name: {app_name}")
         #handling common website openning
         if website_url:
             webbrowser.open(website_url)
@@ -632,7 +630,6 @@ def execute_command(command, installed_apps, cursor, db_conn):
             speak(f"Opening {app_name}.")
         else:
             speak(f"Sorry, I couldn't find {app_name} in your apps.")
-            flag = 1
 
     #handling app closing
     elif 'close' in command:
