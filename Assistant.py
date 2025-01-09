@@ -425,7 +425,6 @@ def insert_new_app(app_name, app_path, cursor, db_conn):
         SELECT COUNT(*) FROM whitelist_apps WHERE app_name = ?
         ''', (app_name,))
         result = cursor.fetchone()
-
         if result[0] > 0:
             print(f"The app '{app_name}' already exists in the whitelist.")
             user_input = input("The app is already exists to you want to over righ it yes/no: ")
