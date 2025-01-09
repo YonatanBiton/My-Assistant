@@ -65,7 +65,7 @@ pip install spacy pyttsx3 numpy pyaudio requests wikipedia-api fuzzywuzzy torch 
    - Web Browsing: "Open [website name]."
 
 3. **Exit the Assistant**:
-   Say "exit" or "bye" to close the assistant.
+   Say "exit" or "goodbye" to close the assistant.
 
 ## How It Works
 
