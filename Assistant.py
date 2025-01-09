@@ -516,21 +516,29 @@ def extract_subject_from_question(question):
         subject = extract_subject_from_question(question)
         # Returns: "the president of the United States"
     """
-    # Process the question with spaCy
-    doc = nlp(question.upper())
-    print("Entities:", doc.ents)
-    subject = None
-    for ent in doc.ents:  
-        if ent.label_ in ['PRODUCT', 'FAC', 'DATE', 'LOC', 'GPE', 'PERSON', 'ORG', 'EVENT']:  # Check for various entities
-            subject = ent.text
-            break
-    # If no named entity is found, fallback to noun phrases (could work for other subjects)
-    if not subject:
-        for np in doc.noun_chunks:
-            subject = np.text
-            break
+    try:
+        # Process the question with spaCy
+        doc = nlp(question.upper())
+        print("Entities:", doc.ents)
+        subject = None
+        for ent in doc.ents:
+            # Check for specific named entities (e.g., PRODUCT, FAC, LOC, etc.)
+            if ent.label_ in ['PRODUCT', 'FAC', 'DATE', 'LOC', 'GPE', 'PERSON', 'ORG', 'EVENT']:
+                subject = ent.text
+                break
 
-    return subject
+        # If no named entity is found, fallback to noun phrases
+        if not subject:
+            for np in doc.noun_chunks:
+                subject = np.text
+                break
+
+        return subject
+
+    except Exception as e:
+        # Handle exceptions and print an error message
+        print(f"An error occurred while processing the question: {e}")
+        return None
 
 
 def website_opener(command):
