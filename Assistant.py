@@ -1,17 +1,14 @@
 import os
-import json
 import subprocess
 import webbrowser
 import pyttsx3
 import requests
 from rapidfuzz import process
 import spacy
-from spacy.pipeline import EntityRuler
 import wikipediaapi
 from datetime import datetime
 import torch
-from transformers import WhisperProcessor, WhisperForConditionalGeneration, pipeline
-from transformers import AutoTokenizer, AutoModelForTokenClassification
+from transformers import WhisperProcessor, WhisperForConditionalGeneration
 import numpy as np
 import pyaudio
 import re
