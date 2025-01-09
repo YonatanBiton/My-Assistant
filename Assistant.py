@@ -5,7 +5,6 @@ import webbrowser
 import pyttsx3
 import requests
 from rapidfuzz import process
-import speech_recognition as sr
 import spacy
 import wikipediaapi
 from datetime import datetime
@@ -24,7 +23,6 @@ model = AutoModelForTokenClassification.from_pretrained("xlm-roberta-large-finet
 nlp = pipeline("ner", model=model, tokenizer=tokenizer)
 
 # Initialize recognizer and text-to-speech engine
-recognizer = sr.Recognizer()
 engine = pyttsx3.init()
 
 # Set your API key (replace with your actual OpenAI API key)
@@ -131,9 +129,13 @@ def extract_entities(command):
         extract_entities(command)
         # Output: {'CITY': 'Paris'}
     """
-    doc = nlp(command)
-    entities = {ent.label_: ent.text for ent in doc.ents}
-    return entities
+    try:
+        doc = nlp(command)
+        entities = {ent.label_: ent.text for ent in doc.ents}
+        return entities
+    except Exception as e:
+        print(f"An error occurred while extracting entities: {e}")
+        return {}
 
 
 
