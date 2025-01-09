@@ -155,7 +155,7 @@ def speak(text):
     engine.say(text)
     engine.runAndWait()
 
-def find_closest_app(user_input, app_dict, cursor):
+def find_closest_app(user_input, cursor):
     """
     Finds the closest matching application name from the provided dictionary using fuzzy string matching.
     Args:
@@ -174,9 +174,15 @@ def find_closest_app(user_input, app_dict, cursor):
         #best_match = process.extractOne(user_input.lower(), app_dict.keys())
         cursor.execute("SELECT app_name FROM whitelist_apps")
         app_names = [row[0] for row in cursor.fetchall()]
-        best_match = process.extractOne(user_input.lower(), [app.lower() for app in app_names])
+        if app_names:
+            best_match = process.extractOne(user_input.lower(), [app.lower() for app in app_names])
         if best_match and best_match[1] > 90:  # Adjust threshold
-            return app_dict[best_match[0]]
+            cursor.execute("SELECT app_path FROM whitelist_apps WHERE LOWER(app_name) = ?", (best_match[0],))
+            app_path_row = cursor.fetchone()
+            if app_path_row:
+                return app_path_row[0]  # Return the app path
+            else:
+                print("App path not found in the database for the matched app.")
         
     except Exception as e:
         # Catch all exceptions to prevent the program from crashing
@@ -439,6 +445,7 @@ def execute_command(command, cursor, db_conn):
     elif 'open' in command:  
         #extraction of the app name from the command
         app_name = entities.get("APP")
+        app_path = find_closest_app(app_name, cursor)
         website_url = website_opener(command, cursor)
         print(f"app name: {app_name}")
         #handling common website openning
@@ -446,8 +453,7 @@ def execute_command(command, cursor, db_conn):
             webbrowser.open(website_url)
             speak(f"Opening {app_name}.")
         #handling computer app openning
-        elif app_path:
-            app_path = find_closest_app(app_name, cursor)
+        if app_path:
             open_app(app_path)
             speak(f"Opening {app_name}.")
         else:
