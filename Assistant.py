@@ -10,8 +10,6 @@ from datetime import datetime
 import torch
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 import numpy as np
-import pyaudio
-import re
 import sqlite3
 import data_base_init
 import soundfile as sf
@@ -37,22 +35,15 @@ def extract_entities(command):
         command (str): The user command in the form of a string.
     Returns:
         dict: A dictionary where the keys are the entity labels 
-              (e.g., 'CITY', 'DATE') and the values are the 
-              corresponding entity values (e.g., 'Paris').
-    Example:
-        command = "What is the weather in Paris?"
-        extract_entities(command)
-        # Output: {'CITY': 'Paris'}
+              (e.g., 'CITY', 'DATE') and the values.
     """
     try:
-        #command = command[1:]
         doc = spacy_nlp(command)
         entities = {ent.label_: ent.text for ent in doc.ents}
         return entities
     except Exception as e:
         print(f"An error occurred while extracting entities: {e}")
         return {}
-
 
 
 def initialize_whisper(model_name="openai/whisper-small.en"):
@@ -75,42 +66,6 @@ def initialize_whisper(model_name="openai/whisper-small.en"):
     model = model.to(device)
     return model, processor, device
 
-'''
-def record_audio(duration=5, sample_rate=16000, threshold=0.01):
-    """
-    Record audio from the microphone and detect speech using the is_speaking function.
-    Args:
-        duration (int): The duration (in seconds) to record audio.
-        sample_rate (int): The sample rate for audio recording (default is 16000 Hz).
-        threshold (float): The threshold value used to detect speech. 
-    Returns:
-        numpy.ndarray or None: 
-            - A numpy array containing the concatenated speech frames if speech is detected.
-            - `None` if no speech is detected during the recording.
-    """
-    audio = pyaudio.PyAudio()
-    stream = audio.open(format=pyaudio.paInt16, channels=1, rate=sample_rate, input=True, frames_per_buffer=1024)
-    print("Listening...")
-    frames = []
-    for _ in range(0, int(sample_rate / 1024 * duration)):
-        data = stream.read(1024, exception_on_overflow=False)
-        audio_data = np.frombuffer(data, dtype=np.int16) / 32768.0  # Normalize to [-1, 1]
-        
-        # Check if the audio contains speech
-        if is_speaking(audio_data, threshold):
-            print("User is speaking...")
-            frames.append(audio_data)
-    print("Processing...")
-    stream.stop_stream()
-    stream.close()
-    audio.terminate()
-    if frames:
-       
-        return np.concatenate(frames)
-    else:
-        print("No speech detected.")
-        return None  # No speech detected
-'''
 
 
 def record_audio(duration=5, sample_rate=16000):
@@ -141,7 +96,6 @@ def process_audio(audio_data):
     return audio_data
 
 
-
 def listen():
     """
     Listens to the user's speech, processes it using the Whisper model, and returns the transcribed text.
@@ -165,19 +119,7 @@ def listen():
         print("Error during speech recognition:")
         traceback.print_exc()
         return None
-
-
-def is_speaking(audio_data, threshold=0.01):
-    """
-    Determine if the user is speaking based on audio amplitude.
-    :param audio_data: Numpy array of audio samples
-    :param threshold: Amplitude threshold to detect speech
-    :return: Boolean, True if speaking, False otherwise
-    """
-    rms = np.sqrt(np.mean(audio_data**2))  # Calculate Root Mean Square (RMS)
-    return rms > threshold
-
-
+    
 def speak(text):
     """
     Speaks the given text using the text-to-speech engine.
@@ -247,7 +189,7 @@ def close_app(app_name):
     """
     Attempts to close an application by killing its process using the provided `app_name`.
     Args:
-        app_name (str): The name of the application to close. This should be the name of the executable (without the `.exe` extension).
+        app_name (str): The name of the application to close.
     """
     try:
         subprocess.run(f"taskkill /f /im {app_name}.exe", shell=True, check=True)
@@ -262,10 +204,8 @@ def get_weather(city):
     Fetches and returns the current weather information for a given city using the OpenWeatherMap API.
     Args:
         city (str): The name of the city for which to fetch the weather information.
-
     Returns:
         str: A string containing the current weather information (e.g., "clear sky", "light rain").
-             If the weather information cannot be fetched, it returns a fallback error message.
     """
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={weather_api_key}"
     response = requests.get(url)
@@ -284,10 +224,8 @@ def get_wikipedia_summary(query):
     Retrieves a brief summary from Wikipedia for a given query.
     Args:
         query (str): The topic or keyword for which to retrieve the Wikipedia summary.
-
     Returns:
-        str: A short summary of the Wikipedia page, consisting of the first two sentences, or an error message 
-             if the page doesn't exist or an error occurs.
+        str: A short summary of the Wikipedia page, consisting of the first two sentences.
     """
     user_agent = "MyAlexaBot/1.0 (yuyu82114@gmail.com)"
     wiki = wikipediaapi.Wikipedia(user_agent, 'en')
@@ -311,10 +249,8 @@ def check_general_question_in_command(command, cursor):
     Checks if the given command contains a general question and extracts the query.
     Args:
         command (str): The command or input string that may contain a general question.
-
     Returns:
-        str: The extracted query from the command if a matching question phrase is found,
-             or None if no match is found.
+        str: The extracted query from the command if a matching question phrase is found.
     """
     # Query to get all phrases from the question_starters table
     cursor.execute("SELECT phrase FROM question_starters")
@@ -364,15 +300,15 @@ def extract_subject_from_question(question):
 
 
 def website_opener(command, cursor):
-    """
-    This function iterates through a dictionary of common websites and returns the URL of the site
-    that matches the name found in the user's command.
+    '''
+    Matches a website name in the user's command and retrieves its URL from the database.
     Args:
-        command (str): The user's command, e.g., "Open Facebook" or "Launch Spotify".
+        command (str): The user's voice or text command containing a potential website name.
+        cursor (sqlite3.Cursor): A database cursor to execute SQL queries.
+
     Returns:
-        str: The URL of the website that matches the site name in the command.
-             If no match is found, the function implicitly returns None.
-    """
+        str: The URL of the matched website if found, otherwise None.
+    '''
         # Query to get all site names and URLs from the database
     cursor.execute("SELECT website_name, url FROM common_websites")
     websites = cursor.fetchall()
@@ -382,26 +318,15 @@ def website_opener(command, cursor):
     return None
     
 
-def extract_app_name(command):
-    """
-    Extract the app name from the user command by removing action words and 
-    identifying the application name using named entity recognition.
-    Args:
-        command (str): The user's command, e.g., "Open Facebook" or "Launch Spotify".
-
-    Returns:
-        str: The extracted app name, either from the named entities or the remaining command.
-    """
-    action_words = ['open', 'close', 'launch', 'start', 'run']
-    for word in action_words:
-        command = command.replace(word, "")  
-    # Extract entities (ORG or other) from the command
-    entities = extract_entities(command)
-    app_name = entities.get("ORG", command.strip())  # Default to the stripped command if no entity is found
-    
-    return app_name
-
 def insert_new_app(app_name, app_path, cursor, db_conn):
+    '''
+    Inserts a new application into the 'whitelist_apps' table in the database.
+    Args:
+        app_name (str): The name of the application to be added.
+        app_path (str): The file path of the application to be added.
+        cursor (sqlite3.Cursor): A database cursor to execute SQL queries.
+        db_conn (sqlite3.Connection): A database connection to commit changes.
+    '''
     try:
     # Check if the app already exists
         cursor.execute('''
@@ -428,7 +353,11 @@ def insert_new_app(app_name, app_path, cursor, db_conn):
         print(f"Error checking or inserting whitelist apps: {e}")
 
 def add_ruler_to_nlp(cursor):
-
+    '''
+    Dynamically adds application-related patterns to an NLP entity ruler for recognition.
+    Args:
+        cursor (sqlite3.Cursor): A database cursor used to fetch application names from the `whitelist_apps` table.
+    '''
     # Fetch app names
     cursor.execute("SELECT app_name FROM whitelist_apps")
     apps = [row[0] for row in cursor.fetchall()]
@@ -439,14 +368,13 @@ def add_ruler_to_nlp(cursor):
 
 def execute_command(command, cursor, db_conn):
     """
-    This function manages and executes different commands received by the assistant. It processes the command, extracts relevant 
-    information (e.g., entities, app names), and performs actions.
-
+    Processes and executes the given user command.
     Args:
-        command (str): The user command that the assistant will execute.
-        installed_apps (dict): A dictionary of installed apps and their paths used to find and execute apps.
+        command (str): The user command to execute.
+        cursor: Database cursor for querying app and website data.
+        db_conn: Database connection for app management.
     Returns:
-        None: The function interacts with the user via voice or browser but doesn't return anything.
+        None: Interacts via voice or browser without returning values.
     """
     flag = 0
     entities = extract_entities(command)  # Extract entities using spaCy
@@ -541,11 +469,6 @@ def get_time_of_day():
     Determines the current time of day based on the system's hour and returns an appropriate greeting.
     Returns:
         str: A string representing the time of day based on the current hour.
-    Time of Day Mapping:
-        - "Morning": From 5:00 AM to 11:59 AM.
-        - "Afternoon": From 12:00 PM to 5:59 PM.
-        - "Evening": From 6:00 PM to 8:59 PM.
-        - "Night": From 9:00 PM to 4:59 AM.
     """
     current_hour = datetime.now().hour
 
@@ -561,15 +484,15 @@ def get_time_of_day():
 
 def assistant_main():
     """
-    Main loop for the assistant that handles initialization, listens for commands, and executes actions.
-    The function:
-        - Initializes Whisper for speech recognition.
-        - Loads the cached list of installed apps.
-        - Greets the user based on the time of day.
-        - Continuously listens for commands and executes them.
-        - Allows the assistant to exit gracefully when "exit" or "bye" is said.
-    Returns:
-        None: The function operates continuously until the user terminates the program.
+    Initializes and runs the virtual assistant.
+    - Sets up the database and loads the Whisper speech recognition model.
+    - Configures NLP patterns for app-specific commands.
+    - Greets the user based on the time of day.
+    - Continuously listens for and executes commands until "exit" or "bye" is detected.
+    - Handles graceful shutdown on user exit or interruption.
+
+    Exceptions:
+        - Logs errors during initialization or runtime interruptions.
     """
     global whisper_model, whisper_processor, device
     
