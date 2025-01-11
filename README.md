@@ -18,7 +18,7 @@ This project is a Python-based voice-controlled personal assistant. It utilizes 
 ### Prerequisites
 
 Ensure you have the following installed:
-- Python 3.8+
+- Python 3.8 - 3.12
 - pip
 - SQLite
 
