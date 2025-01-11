@@ -361,7 +361,6 @@ def add_ruler_to_nlp(cursor):
     # Fetch app names
     cursor.execute("SELECT app_name FROM whitelist_apps")
     apps = [row[0] for row in cursor.fetchall()]
-    print("in here")
     # Define patterns dynamically
     patterns = [{"label": "APP", "pattern": app} for app in apps]
     ruler.add_patterns(patterns)
@@ -378,8 +377,6 @@ def execute_command(command, cursor, db_conn):
     """
     flag = 0
     entities = extract_entities(command)  # Extract entities using spaCy
-    print("in excute "+command)
-    print(f"type of commad: {type(command)}")
     print(entities)
     if 'weather' in command:  # If the command contains 'weather', it fetches the weather
         city = entities.get("GPE")  # Get city (Geopolitical Entity) from entities
@@ -409,7 +406,6 @@ def execute_command(command, cursor, db_conn):
     #handling app opnening
     elif 'open' in command:  
         #extraction of the app name from the command
-        print("in open")
         app_name = entities.get("APP")
         app_path = find_closest_app(app_name, cursor)
         website_url = website_opener(command, cursor)
