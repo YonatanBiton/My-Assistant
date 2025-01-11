@@ -14,6 +14,9 @@ import pyaudio
 import re
 import sqlite3
 import data_base_init
+import soundfile as sf
+import sounddevice as sd
+import traceback
 # Initialize spaCy NLP model
 spacy_nlp = spacy.load("en_core_web_lg")
 ruler = spacy_nlp.add_pipe("entity_ruler", before="ner")
@@ -42,7 +45,7 @@ def extract_entities(command):
         # Output: {'CITY': 'Paris'}
     """
     try:
-        command = command[1:]
+        #command = command[1:]
         doc = spacy_nlp(command)
         entities = {ent.label_: ent.text for ent in doc.ents}
         return entities
@@ -72,7 +75,7 @@ def initialize_whisper(model_name="openai/whisper-small.en"):
     model = model.to(device)
     return model, processor, device
 
-
+'''
 def record_audio(duration=5, sample_rate=16000, threshold=0.01):
     """
     Record audio from the microphone and detect speech using the is_speaking function.
@@ -107,6 +110,37 @@ def record_audio(duration=5, sample_rate=16000, threshold=0.01):
     else:
         print("No speech detected.")
         return None  # No speech detected
+'''
+
+
+def record_audio(duration=5, sample_rate=16000):
+    """
+    Record audio for a specified duration
+    """
+    print(f"Listening...")
+    audio_data = sd.rec(int(sample_rate * duration),
+                        samplerate=sample_rate,
+                        channels=1,
+                        dtype='float32')
+    sd.wait()
+    print("Recording finished!")
+    return audio_data
+
+def process_audio(audio_data):
+    """
+    Process audio data for Whisper
+    """
+    # Ensure audio is mono and float32
+    if len(audio_data.shape) > 1:
+        audio_data = audio_data.mean(axis=1)
+
+    # Normalize audio
+    if audio_data.max() > 1.0 or audio_data.min() < -1.0:
+        audio_data = np.clip(audio_data, -1.0, 1.0)
+
+    return audio_data
+
+
 
 def listen():
     """
@@ -119,6 +153,7 @@ def listen():
     global whisper_model, whisper_processor, device
     try:
         audio_array = record_audio()
+        audio_array = process_audio(audio_array)
         input_features = whisper_processor(audio_array, sampling_rate=16000, return_tensors="pt").input_features.to(device)
         predicted_ids = whisper_model.generate(input_features)
         transcription = whisper_processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
@@ -127,7 +162,6 @@ def listen():
             return transcription.lower()
         return None
     except Exception as e:
-        import traceback
         print("Error during speech recognition:")
         traceback.print_exc()
         return None
@@ -394,10 +428,11 @@ def insert_new_app(app_name, app_path, cursor, db_conn):
         print(f"Error checking or inserting whitelist apps: {e}")
 
 def add_ruler_to_nlp(cursor):
+
     # Fetch app names
     cursor.execute("SELECT app_name FROM whitelist_apps")
     apps = [row[0] for row in cursor.fetchall()]
-
+    print("in here")
     # Define patterns dynamically
     patterns = [{"label": "APP", "pattern": app} for app in apps]
     ruler.add_patterns(patterns)
@@ -415,6 +450,8 @@ def execute_command(command, cursor, db_conn):
     """
     flag = 0
     entities = extract_entities(command)  # Extract entities using spaCy
+    print("in excute "+command)
+    print(f"type of commad: {type(command)}")
     print(entities)
     if 'weather' in command:  # If the command contains 'weather', it fetches the weather
         city = entities.get("GPE")  # Get city (Geopolitical Entity) from entities
@@ -444,6 +481,7 @@ def execute_command(command, cursor, db_conn):
     #handling app opnening
     elif 'open' in command:  
         #extraction of the app name from the command
+        print("in open")
         app_name = entities.get("APP")
         app_path = find_closest_app(app_name, cursor)
         website_url = website_opener(command, cursor)
@@ -486,6 +524,7 @@ def execute_command(command, cursor, db_conn):
     else:
         speak("Sorry didn't understand the command.")
         flag = 1
+
     #in case assistant didn't understand the command, ask user to look up the command on google
     if flag == 1:
         speak(f"Do you want me to look up{command} in google?")
@@ -569,7 +608,6 @@ def assistant_main():
     try:
         while True:
             command = listen()
-            
             if command:
                 if "exit" in command or "bye" in command:
                     speak("Goodbye!")
