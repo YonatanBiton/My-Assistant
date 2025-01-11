@@ -24,7 +24,7 @@ def create_tables(cursor):
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS whitelist_apps (
             id INTEGER PRIMARY KEY,
-            app_name TEXT,
+            app_name TEXT UNIQUE,
             app_path TEXT
         )
         ''')
