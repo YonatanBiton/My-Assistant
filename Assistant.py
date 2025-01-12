@@ -113,7 +113,7 @@ def listen():
         transcription = whisper_processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
         if transcription.strip():
             print(f"You said:{transcription}")
-            return transcription.lower()
+            return transcription
         return None
     except Exception as e:
         print("Error during speech recognition:")
@@ -150,9 +150,11 @@ def find_closest_app(user_input, cursor):
         #best_match = process.extractOne(user_input.lower(), app_dict.keys())
         cursor.execute("SELECT app_name FROM whitelist_apps")
         app_names = [row[0] for row in cursor.fetchall()]
+        print(f"app names: {app_names}")
+        print(f"user_input: {user_input}")
         if app_names:
             best_match = process.extractOne(user_input.lower(), [app.lower() for app in app_names])
-        if best_match and best_match[1] > 90:  # Adjust threshold
+        if best_match and best_match[1] > 90: 
             cursor.execute("SELECT app_path FROM whitelist_apps WHERE LOWER(app_name) = ?", (best_match[0],))
             app_path_row = cursor.fetchone()
             if app_path_row:
@@ -163,7 +165,7 @@ def find_closest_app(user_input, cursor):
     except Exception as e:
         # Catch all exceptions to prevent the program from crashing
         print(f"An error occurred: {e}")
-        return None
+    return None
 
 def open_app(app_path):
     """
@@ -314,8 +316,9 @@ def website_opener(command, cursor):
     websites = cursor.fetchall()
     for site_name, site_url in websites:
         if site_name.lower() in command.lower():  # Case insensitive matching
-            return site_url
-    return None
+            print(site_name)
+            return site_name,site_url
+    return None, None
     
 
 def insert_new_app(app_name, app_path, cursor, db_conn):
@@ -376,7 +379,7 @@ def execute_command(command, cursor, db_conn):
         None: Interacts via voice or browser without returning values.
     """
     flag = 0
-    entities = extract_entities(command)  # Extract entities using spaCy
+    entities = extract_entities(command.lower())  # Extract entities using spaCy
     print(entities)
     if 'weather' in command:  # If the command contains 'weather', it fetches the weather
         city = entities.get("GPE")  # Get city (Geopolitical Entity) from entities
@@ -404,22 +407,25 @@ def execute_command(command, cursor, db_conn):
             flag = 1
 
     #handling app opnening
-    elif 'open' in command:  
+    elif 'open'  in command.lower():  
         #extraction of the app name from the command
         app_name = entities.get("APP")
-        app_path = find_closest_app(app_name, cursor)
-        website_url = website_opener(command, cursor)
-        print(f"app name: {app_name}")
+        website_name , website_url = website_opener(command, cursor)
         #handling common website openning
         if website_url:
             webbrowser.open(website_url)
-            speak(f"Opening {app_name}.")
+            speak(f"Opening {website_name}.")
+        elif website_name != None:
+            speak(f"Sorry, I couldn't find {website_name} in my website table.")
         #handling computer app openning
-        if app_path:
+        if app_name:
+            app_path = find_closest_app(app_name, cursor)
             open_app(app_path)
             speak(f"Opening {app_name}.")
-        else:
+        elif app_name != None:
             speak(f"Sorry, I couldn't find {app_name} in your apps.")
+        else:
+            speak("Couldnt understand the app you are looking for please try again")
 
     #handling app closing
     elif 'close' in command:
