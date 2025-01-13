@@ -424,8 +424,8 @@ def execute_command(command, cursor, db_conn):
             speak(f"Opening {app_name}.")
         elif app_name != None:
             speak(f"Sorry, I couldn't find {app_name} in your apps.")
-        else:
-            speak("Couldnt understand the app you are looking for please try again")
+        elif website_name == None and app_name == None:
+            speak("Couldnt understand the application or website you were looking for. please try again")
 
     #handling app closing
     elif 'close' in command:
